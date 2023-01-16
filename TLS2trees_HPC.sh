@@ -2,27 +2,88 @@
 
 # TODO: PBS comments here
 
-if [ "$#" -ne 1 ]; then
-  echo "Usage: $0 /home/.../XXX.riproject" >&2
+
+##
+## Check args
+##
+
+if [ "$#" -lt 1 ]; then
+  echo "Usage: $0 <project name>.riproject (optional) run_ID" >&2
+  echo "Make sure the riproject folder is present either in the VSC_DATA or VSC_SCRATCH directory"
   exit 1
 fi
 
-# TODO: copy data to SCRATCH first
-# TODO: change to correct file locations using $VSC_SCRATCH etc.
-# TODO: set odir as variable
 
-echo "$(date +[%Y.%m.%d\|%H:%M:%S]) - Starting semantic segmentation"
+##
+## Locate data and copy to scratch for more room and faster executing
+##
+
+# get folder name
+INPUTFOLDER=$(basename $1)
+
+# TODO: enable this without being in VO
+
+VO_SCRATCH_DIR="${VSC_SCRATCH_VO}/TLS2trees"
+mkdir -p ${VO_SCRATCH_DIR}
+#check if in VO SCRATCH, if so no copy needed
+if [ ! -d "${VO_SCRATCH_DIR}/$1/" ]; then
+    # if not in VO SCRATCH, check if in VO DATA
+    echo "Data not found in VO SCRATCH ($VO_SCRATCH_DIR), looking in VO DATA"
+    VO_DATA_DIR="${VSC_DATA_VO}/TLS2trees"
+    mkdir -p ${VO_DATA_DIR}
+    if [ ! -d "${VO_DATA_DIR}/$1" ]; then
+        # if not in VO DATA, check if in user DATA
+        echo "Data not found in VO DATA ($VO_DATA_DIR), looking in user DATA ($VSC_DATA)"
+        if [ ! -d "${VSC_DATA}/$1" ]; then
+            # finally check if the argument given is a valid directory, then just copy straight from there
+            if [ ! -d "$1" ]; then
+                echo "I couldn't find the dataset in either the VO SCRATCH, VO DATA or your personal data folder. Please check the readme to ensure this data is in the correct location, and if the name is spelled correctly."
+                exit 1
+            else
+                echo "Copying to scratch"
+                #remove slash if present, so directory is also copied
+
+                rsync -rzvP ${1%/} ${VO_SCRATCH_DIR}
+            fi
+        else    
+            echo "Found in data directory, copying to scratch"
+            rsync -rzvP ${VSC_DATA}/$1 ${VO_SCRATCH_DIR}
+        fi
+    else
+        echo "Found in VO data, copying to scratch"
+        rsync -rzvP ${VO_DATA_DIR}/$1 ${VO_SCRATCH_DIR}
+    fi
+else
+    echo "Input directory found in scratch, continuing"
+    echo "(If any changes were made to the input directory, first delete the directory with the same name in VSC_SCRATCH_VO and restart script)"
+fi
+
+
+# input folder
+IDIR="${VO_SCRATCH_DIR}/${INPUTFOLDER}"
+
+# outputfolder with ID if provided
+ODIR="${VO_SCRATCH_DIR}/output/$2"
+mkdir -p ODIR
+# logs in outputfolder
+LOGSDIR = "${ODIR}/logs"
 mkdir -p logs
 
 
-for FILE in $1/extraction/downsample/*.ply ; 
+
+# TODO: change to correct file locations using $VSC_SCRATCH etc.
+
+echo "$(date +[%Y.%m.%d\|%H:%M:%S]) - Starting semantic segmentation"
+
+for FILE in ${IDIR}/extraction/downsample/*.ply ; 
 do
   # extract tile name by stripping current file name
   TILE="${FILE##*/}"
   TILE="${TILE%%.*}"
   # run semantic segmentation
+  # TODO: try run without bind? might give weird results
   apptainer exec --bind $1:/data/ tls2trees_latest.sif run.py -p /data/extraction/downsample/$TILE.downsample.ply --tile-index /data/extraction/tile_index.dat \
-  --verbose --odir /data/clouds/singularity/SemanticSeg &> ./logs/output$TILE.log &
+  --verbose --odir /data/clouds/singularity/SemanticSeg &> ${LOGSDIR}/output$TILE.log &
 done
 
 echo "All semantic segmentation containers launched"
@@ -34,16 +95,17 @@ echo "$(date +[%Y.%m.%d\|%H:%M:%S]) - Starting instance segmentation"
 
 # TODO: change this for loop to actually loop over created semanticsegmentation files
 # TODO: Create array of tiles in previous loop, loop over these and if no file is found, report missing so it can be rerun individually later (or by program)
-for FILE in $1/extraction/downsample/*.ply ; 
+# TEST TODOS LOCALLY!
+for FILE in ${IDIR}/extraction/downsample/*.ply ; 
 do
   # extract tile name by stripping current file name
   TILE="${FILE##*/}"
   TILE="${TILE%%.*}"
   # run semantic segmentation
-  apptainer exec --bind $1:/data/ tls2trees_latest.sif points2trees.py -t /data/clouds/singularity/SemanticSeg/$TILE.downsample.segmented.ply \
+  apptainer exec --bind ${IDIR}:/data/ tls2trees_latest.sif points2trees.py -t /data/clouds/singularity/SemanticSeg/$TILE.downsample.segmented.ply \
   --tindex /data/extraction/tile_index.dat --n-tiles 5 --slice-thickness .5 --find-stems-height 2 --find-stems-thickness .5 \
   --add-leaves --add-leaves-voxel-length .5 --graph-maximum-cumulative-gap 3 --save-diameter-class \
-  --ignore-missing-tiles --odir /data/clouds/singularity/Tile$TILE/Trees &>> ./logs/output$TILE.log &
+  --ignore-missing-tiles --odir /data/clouds/singularity/Tile$TILE/Trees &>> ${LOGSDIR}/output$TILE.log &
 done
 
 echo "All instance segmentation containers launched"
