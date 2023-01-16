@@ -16,12 +16,15 @@ fi
 
 ##
 ## Locate data and copy to scratch for more room and faster executing
+## TODO: enable this without being in VO
 ##
+
+# check if container image present
+
 
 # get folder name
 INPUTFOLDER=$(basename $1)
 
-# TODO: enable this without being in VO
 
 VO_SCRATCH_DIR="${VSC_SCRATCH_VO}/TLS2trees"
 mkdir -p ${VO_SCRATCH_DIR}
@@ -64,14 +67,10 @@ IDIR="${VO_SCRATCH_DIR}/${INPUTFOLDER}"
 
 # outputfolder with ID if provided
 ODIR="${VO_SCRATCH_DIR}/output/$2"
-mkdir -p ODIR
+mkdir -p ${ODIR}
 # logs in outputfolder
 LOGSDIR = "${ODIR}/logs"
-mkdir -p logs
-
-
-
-# TODO: change to correct file locations using $VSC_SCRATCH etc.
+mkdir -p ${LOGSDIR}
 
 echo "$(date +[%Y.%m.%d\|%H:%M:%S]) - Starting semantic segmentation"
 
@@ -81,9 +80,8 @@ do
   TILE="${FILE##*/}"
   TILE="${TILE%%.*}"
   # run semantic segmentation
-  # TODO: try run without bind? might give weird results
-  apptainer exec --bind $1:/data/ tls2trees_latest.sif run.py -p /data/extraction/downsample/$TILE.downsample.ply --tile-index /data/extraction/tile_index.dat \
-  --verbose --odir /data/clouds/singularity/SemanticSeg &> ${LOGSDIR}/output$TILE.log &
+  apptainer exec --bind ${IDIR}:/input,${ODIR}:/output ${VO_SCRATCH_DIR}/tls2trees_latest.sif run.py -p /input/extraction/downsample/$TILE.downsample.ply --tile-index /input/extraction/tile_index.dat \
+  --verbose --odir /output/SemanticSeg &> ${LOGSDIR}/output$TILE.log &
 done
 
 echo "All semantic segmentation containers launched"
@@ -102,10 +100,10 @@ do
   TILE="${FILE##*/}"
   TILE="${TILE%%.*}"
   # run semantic segmentation
-  apptainer exec --bind ${IDIR}:/data/ tls2trees_latest.sif points2trees.py -t /data/clouds/singularity/SemanticSeg/$TILE.downsample.segmented.ply \
-  --tindex /data/extraction/tile_index.dat --n-tiles 5 --slice-thickness .5 --find-stems-height 2 --find-stems-thickness .5 \
+  apptainer exec --bind ${IDIR}:/input,${ODIR}:/output ${VO_SCRATCH_DIR}/tls2trees_latest.sif points2trees.py -t /output/SemanticSeg/$TILE.downsample.segmented.ply \
+  --tindex /input/extraction/tile_index.dat --n-tiles 5 --slice-thickness .5 --find-stems-height 2 --find-stems-thickness .5 \
   --add-leaves --add-leaves-voxel-length .5 --graph-maximum-cumulative-gap 3 --save-diameter-class \
-  --ignore-missing-tiles --odir /data/clouds/singularity/Tile$TILE/Trees &>> ${LOGSDIR}/output$TILE.log &
+  --ignore-missing-tiles --odir /output/clouds/Tile$TILE/ &>> ${LOGSDIR}/output$TILE.log &
 done
 
 echo "All instance segmentation containers launched"

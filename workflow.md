@@ -19,8 +19,3 @@ Singularity Workflow:
          (make sure containers launched in first script are fully finished before launching second script! This can be done by running `ps aux | grep "[S]ingularity"` in a new terminal, if no output is shown then containers are finished.)
  3. Output can be found in /home/.../XXX.riproject/clouds/singularity/
  4. If unable to open output files, run `sudo chown -R <user>:<user> </home/.../XXX.riproject>` (should be done automatically)
-
-TODO's:
-   - Singularity pipeline in 1 script by monitoring processes
-   - Proper error management
-   - Rewrite instance segmentation loop to detect if file of tile doesn't exist
