@@ -7,12 +7,11 @@ Transfer files to HPC: TODO: link to howto
 Locate files into one of these folders:
 TODO: list folders here, explain scratch, limits and recommend membership of VO etc.
 
-
+Make sure tls2trees_latest.sif is in $VO_SCRATCH_DIR
 
 
 TODO's for first HPC RUN:
 
-- Rewrite and test instance segmentation loop
-- Give overview of files not present after semantic segmentation loop that would be expected to detect failed containers
-- Test local bind paths, or omit?
+- PBS comments
+- Transfer .sif
 

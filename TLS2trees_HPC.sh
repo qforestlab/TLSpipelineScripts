@@ -62,25 +62,35 @@ else
 fi
 
 
+##
+## Run semantic segmentation
+##
+
 # input folder
 IDIR="${VO_SCRATCH_DIR}/${INPUTFOLDER}"
 
 # outputfolder with ID if provided
 ODIR="${VO_SCRATCH_DIR}/output/$2"
 mkdir -p ${ODIR}
+
 # logs in outputfolder
 LOGSDIR = "${ODIR}/logs"
 mkdir -p ${LOGSDIR}
 
+# SIF location
+SIF_LOC = "${VO_SCRATCH_DIR}/tls2trees_latest.sif"
+
 echo "$(date +[%Y.%m.%d\|%H:%M:%S]) - Starting semantic segmentation"
 
+SEM_TILES=()
 for FILE in ${IDIR}/extraction/downsample/*.ply ; 
 do
   # extract tile name by stripping current file name
   TILE="${FILE##*/}"
   TILE="${TILE%%.*}"
+  SEM_TILES+=( $TILE )
   # run semantic segmentation
-  apptainer exec --bind ${IDIR}:/input,${ODIR}:/output ${VO_SCRATCH_DIR}/tls2trees_latest.sif run.py -p /input/extraction/downsample/$TILE.downsample.ply --tile-index /input/extraction/tile_index.dat \
+  apptainer exec --bind ${IDIR}:/input,${ODIR}:/output ${SIF_LOC} run.py -p /input/extraction/downsample/$TILE.downsample.ply --tile-index /input/extraction/tile_index.dat \
   --verbose --odir /output/SemanticSeg &> ${LOGSDIR}/output$TILE.log &
 done
 
@@ -89,18 +99,24 @@ echo "All semantic segmentation containers launched"
 # wait for all containers to terminate
 wait
 
+##
+## Run instance segmentation
+##
+
 echo "$(date +[%Y.%m.%d\|%H:%M:%S]) - Starting instance segmentation"
 
-# TODO: change this for loop to actually loop over created semanticsegmentation files
-# TODO: Create array of tiles in previous loop, loop over these and if no file is found, report missing so it can be rerun individually later (or by program)
-# TEST TODOS LOCALLY!
-for FILE in ${IDIR}/extraction/downsample/*.ply ; 
+
+SEMSEG_OUT="${IDIR}/clouds/SemanticSeg"
+
+INST_TILES=()
+for FILE in ${SEMSEG_OUT}/*.ply ; 
 do
   # extract tile name by stripping current file name
   TILE="${FILE##*/}"
   TILE="${TILE%%.*}"
+  INST_TILES+=( $TILE )
   # run semantic segmentation
-  apptainer exec --bind ${IDIR}:/input,${ODIR}:/output ${VO_SCRATCH_DIR}/tls2trees_latest.sif points2trees.py -t /output/SemanticSeg/$TILE.downsample.segmented.ply \
+  apptainer exec --bind ${IDIR}:/input,${ODIR}:/output ${SIF_LOC} points2trees.py -t /output/SemanticSeg/$TILE.downsample.segmented.ply \
   --tindex /input/extraction/tile_index.dat --n-tiles 5 --slice-thickness .5 --find-stems-height 2 --find-stems-thickness .5 \
   --add-leaves --add-leaves-voxel-length .5 --graph-maximum-cumulative-gap 3 --save-diameter-class \
   --ignore-missing-tiles --odir /output/clouds/Tile$TILE/ &>> ${LOGSDIR}/output$TILE.log &
@@ -111,8 +127,77 @@ echo "All instance segmentation containers launched"
 # wait for all containers to terminate
 wait
 
-# TODO: check here if all files have been created, and maybe create overview of files missing/tiles to rerun
+##
+## Give overview of which tiles have succeeded
+##
 
+# detect failed semantic segmentation by comparing launched semantic vs instance seg containers
+
+SEMSEG_SUCCES=()
+SEMSEG_FAIL=()
+for i in "${SEM_TILES[@]}" ;
+do
+    FOUND=false
+    for j in "${INST_TILES[@]}" ;
+    do
+        if [ "$i" -eq "$j" ] ; then
+            FOUND=true
+            break
+        fi
+    done
+    if [ "$FOUND" = true ] ; then
+        SEMSEG_SUCCES+=( $i )
+    else
+        SEMSEG_FAIL+=( $i )
+    fi
+done
+
+# detect failed instance segmentation by comparing launched instance seg containers and output
+
+FULL_SUCCES=() 
+# check directories to see which tiles have been completed
+for dir in ${IDIR}/clouds/*/ ;
+do
+    DIR=$(basename $dir)
+    if [ ${DIR::4} == "Tile" ] ; then
+        FULL_SUCCES+=( ${DIR:4} )
+    fi
+done
+echo ${FULL_SUCCES[@]}
+
+INSTSEG_SUCCES=()
+INSTSEG_FAIL=()
+# detect tiles not in INST_ARRAY
+for i in "${INST_TILES[@]}" ;
+do
+    FOUND=false
+    for j in "${SUCCES[@]}" ;
+    do
+        if [ "$i" -eq "$j" ] ; then
+            FOUND=true
+            break
+        fi
+    done
+    if [ "$FOUND" = true ] ; then
+        INSTSEG_SUCCES+=( $i )
+    else
+        INSTSEG_FAIL+=( $i )
+    fi
+done
+
+# print summary
+
+echo "Printing summary of succeeded tiles."
+echo "Failed semantic segmentation containers (Total: ${#SEMSEG_FAIL[@]}/${#SEM_TILES[@]})"
+for FAILED in "${SEMSEG_FAIL[@]}";
+do
+    echo "$FAILED"
+done
+echo "Failed instance segmentation containers (Total: ${#INSTSEG_FAIL[@]}/${#INST_TILES[@]})"
+for FAILED in "${INSTSEG_FAIL[@]}";
+do
+    echo "$FAILED"
+done
 
 echo "$(date +[%Y.%m.%d\|%H:%M:%S]) - Done"
 
