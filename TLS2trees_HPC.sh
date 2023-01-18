@@ -2,6 +2,10 @@
 
 # TODO: PBS comments here
 
+# swap to kirlia cluster
+module swap cluster/kirlia
+
+
 
 ##
 ## Check args
