@@ -14,30 +14,46 @@ if [ "$#" -lt 1 ]; then
 fi
 
 
+
 ##
 ## Locate data and copy to scratch for more room and faster executing
 ## TODO: enable this without being in VO
 ##
 
+# check if user part of VO
+if [ -z "${VSC_SCRATCH_VO}" ]; then
+    echo "We detect that the VSC_SCRATCH_VO variable is not set, currently this script only works if you are part of a VO"
+    echo "Please contact me if you want to join the CAVElab VO"
+    echo "$(date +[%Y.%m.%d\|%H:%M:%S]) - Exiting"
+    exit 1
+fi
+
+
+
+VO_SCRATCH_DIR="${VSC_SCRATCH_VO}/TLS2trees"
+mkdir -p ${VO_SCRATCH_DIR}
+
 # check if container image present
+if [ -f "${VO_SCRATCH_DIR}/tls2trees_latest.sif" ]; then
+    echo "Couldn't find the tls2trees_latest.sif file in ${VO_SCRATCH_DIR}, please refer to the manual to ensure it is there."
+    echo "$(date +[%Y.%m.%d\|%H:%M:%S]) - Exiting"
+    exit 1
+fi
 
 
 # get folder name
 INPUTFOLDER=$(basename $1)
 
-
-VO_SCRATCH_DIR="${VSC_SCRATCH_VO}/TLS2trees"
-mkdir -p ${VO_SCRATCH_DIR}
 #check if in VO SCRATCH, if so no copy needed
-if [ ! -d "${VO_SCRATCH_DIR}/$1/" ]; then
+if [ ! -d "${VO_SCRATCH_DIR}/${INPUTFOLDER}/" ]; then
     # if not in VO SCRATCH, check if in VO DATA
     echo "Data not found in VO SCRATCH ($VO_SCRATCH_DIR), looking in VO DATA"
     VO_DATA_DIR="${VSC_DATA_VO}/TLS2trees"
     mkdir -p ${VO_DATA_DIR}
-    if [ ! -d "${VO_DATA_DIR}/$1" ]; then
+    if [ ! -d "${VO_DATA_DIR}/${INPUTFOLDER}" ]; then
         # if not in VO DATA, check if in user DATA
         echo "Data not found in VO DATA ($VO_DATA_DIR), looking in user DATA ($VSC_DATA)"
-        if [ ! -d "${VSC_DATA}/$1" ]; then
+        if [ ! -d "${VSC_DATA}/${INPUTFOLDER}" ]; then
             # finally check if the argument given is a valid directory, then just copy straight from there
             if [ ! -d "$1" ]; then
                 echo "I couldn't find the dataset in either the VO SCRATCH, VO DATA or your personal data folder. Please check the readme to ensure this data is in the correct location, and if the name is spelled correctly."
@@ -106,7 +122,7 @@ wait
 echo "$(date +[%Y.%m.%d\|%H:%M:%S]) - Starting instance segmentation"
 
 
-SEMSEG_OUT="${IDIR}/clouds/SemanticSeg"
+SEMSEG_OUT="${ODIR}/SemanticSeg"
 
 INST_TILES=()
 for FILE in ${SEMSEG_OUT}/*.ply ; 
@@ -126,6 +142,9 @@ echo "All instance segmentation containers launched"
 
 # wait for all containers to terminate
 wait
+
+echo "$(date +[%Y.%m.%d\|%H:%M:%S]) - Instance segmentation finished"
+
 
 ##
 ## Give overview of which tiles have succeeded
