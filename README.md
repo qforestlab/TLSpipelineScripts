@@ -5,7 +5,6 @@ These scripts may be used to automatically run the TLS pipeline by Phil Wilkes, 
 
 ## HPC
 
----
 
 The algorithms used are very memory-intensive. Therefore it is recommended to run it on the Kirlia cluster of the UGent HPC. For this, a script is provided that will launch all tiles at once.
 Due to large dataset sizes and limited personal data quota, ensure you are part of a VO first to obtain larger data quota (you may contact me to join the CAVElab VO).
@@ -27,8 +26,9 @@ You will need to specify some resource requirements for the job, more info [here
 
 Submit job by running:
 ```
-qsub -l walltime=<h:m:s>,nodes=<#nodes>:ppn=<#cores/node>,mem=<#Gb>
+qsub -l walltime=<h:m:s>,nodes=<#nodes>:ppn=<#cores/node>,mem=<#Gb> TLS2trees_HPC.sh <proj>.riproject (optional) <ID>
 ```
+The optional ID may be used to run multiple jobs at once with different parameters, and will be used to define a unique output location.
 Add the `-m abe` option to get e-mail notifications of your job beginning (b), ending (e) and aborting (a).
 
 #### Monitoring job
@@ -41,7 +41,7 @@ TODO
 
 ## Local
 
----
+
 
 
 

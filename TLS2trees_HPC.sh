@@ -1,21 +1,22 @@
 #!/bin/bash
 
-# TODO: PBS comments here
-
-# swap to kirlia cluster
-module swap cluster/kirlia
-
-
+# check if input is set
+if [ -z "$INPUT" ]; then
+    echo "Please pass your input riproject folder using the '-v INPUT=<proj>.riproject' command line option"
+    echo "Exiting"
+    exit 1
+fi
 
 ##
 ## Check args
+## Deprecated because TORQUE scheduler does not accept args
 ##
 
-if [ "$#" -lt 1 ]; then
-  echo "Usage: $0 <project name>.riproject (optional) run_ID" >&2
-  echo "Make sure the riproject folder is present either in the VSC_DATA or VSC_SCRATCH directory"
-  exit 1
-fi
+# if [ "$#" -lt 1 ]; then
+#   echo "Usage: $0 <project name>.riproject (optional) run_ID" >&2
+#   echo "Make sure the riproject folder is present either in the VSC_DATA or VSC_SCRATCH directory"
+#   exit 1
+# fi
 
 
 
@@ -37,8 +38,14 @@ fi
 VO_SCRATCH_DIR="${VSC_SCRATCH_VO}/TLS2trees"
 mkdir -p ${VO_SCRATCH_DIR}
 
+echo "DEBUG: VO_SCRATCH_DIR variable: $VO_SCRATCH_DIR"
+
+
+# SIF location
+SIF_LOC="${VO_SCRATCH_DIR}/tls2trees_latest.sif"
+
 # check if container image present
-if [ -f "${VO_SCRATCH_DIR}/tls2trees_latest.sif" ]; then
+if [ ! -f "${SIF_LOC}" ]; then
     echo "Couldn't find the tls2trees_latest.sif file in ${VO_SCRATCH_DIR}, please refer to the manual to ensure it is there."
     echo "$(date +[%Y.%m.%d\|%H:%M:%S]) - Exiting"
     exit 1
@@ -46,7 +53,10 @@ fi
 
 
 # get folder name
-INPUTFOLDER=$(basename $1)
+INPUTFOLDER=$(basename $INPUT)
+
+echo "DEBUG: INPUT VARIABLE: $INPUT"
+echo "DEBUG: INPUTFOLDER VARIABLE: $INPUTFOLDER"
 
 #check if in VO SCRATCH, if so no copy needed
 if [ ! -d "${VO_SCRATCH_DIR}/${INPUTFOLDER}/" ]; then
@@ -59,22 +69,22 @@ if [ ! -d "${VO_SCRATCH_DIR}/${INPUTFOLDER}/" ]; then
         echo "Data not found in VO DATA ($VO_DATA_DIR), looking in user DATA ($VSC_DATA)"
         if [ ! -d "${VSC_DATA}/${INPUTFOLDER}" ]; then
             # finally check if the argument given is a valid directory, then just copy straight from there
-            if [ ! -d "$1" ]; then
+            if [ ! -d "$INPUT" ]; then
                 echo "I couldn't find the dataset in either the VO SCRATCH, VO DATA or your personal data folder. Please check the readme to ensure this data is in the correct location, and if the name is spelled correctly."
                 exit 1
             else
                 echo "Copying to scratch"
                 #remove slash if present, so directory is also copied
 
-                rsync -rzvP ${1%/} ${VO_SCRATCH_DIR}
+                rsync -rzvP ${INPUT%/} ${VO_SCRATCH_DIR}
             fi
         else    
             echo "Found in data directory, copying to scratch"
-            rsync -rzvP ${VSC_DATA}/$1 ${VO_SCRATCH_DIR}
+            rsync -rzvP ${VSC_DATA}/${INPUTFOLDER} ${VO_SCRATCH_DIR}
         fi
     else
         echo "Found in VO data, copying to scratch"
-        rsync -rzvP ${VO_DATA_DIR}/$1 ${VO_SCRATCH_DIR}
+        rsync -rzvP ${VO_DATA_DIR}/${INPUTFOLDER} ${VO_SCRATCH_DIR}
     fi
 else
     echo "Input directory found in scratch, continuing"
@@ -89,22 +99,30 @@ fi
 # input folder
 IDIR="${VO_SCRATCH_DIR}/${INPUTFOLDER}"
 
+echo "DEBUG: IDIR variable : ${IDIR}"
+
 # outputfolder with ID if provided
-ODIR="${VO_SCRATCH_DIR}/output/$2"
+if [ -n "ID" ] ; then
+    ODIR="${VO_SCRATCH_DIR}/output/$ID"
+else
+    ODIR="${VO_SCRATCH_DIR}/output/"
+fi
 mkdir -p ${ODIR}
 
+echo "DEBUG: ODIR variable : ${ODIR}"
+
+
 # logs in outputfolder
-LOGSDIR = "${ODIR}/logs"
+LOGSDIR="${ODIR}/logs"
 mkdir -p ${LOGSDIR}
 
-# SIF location
-SIF_LOC = "${VO_SCRATCH_DIR}/tls2trees_latest.sif"
 
 echo "$(date +[%Y.%m.%d\|%H:%M:%S]) - Starting semantic segmentation"
 
 SEM_TILES=()
 for FILE in ${IDIR}/extraction/downsample/*.ply ; 
 do
+  echo "Launching tile from file: ${FILE}"
   # extract tile name by stripping current file name
   TILE="${FILE##*/}"
   TILE="${TILE%%.*}"
@@ -131,6 +149,7 @@ SEMSEG_OUT="${ODIR}/SemanticSeg"
 INST_TILES=()
 for FILE in ${SEMSEG_OUT}/*.ply ; 
 do
+  echo "Launcing tile from file: ${FILE}"
   # extract tile name by stripping current file name
   TILE="${FILE##*/}"
   TILE="${TILE%%.*}"
@@ -182,7 +201,7 @@ FULL_SUCCES=()
 for dir in ${IDIR}/clouds/*/ ;
 do
     DIR=$(basename $dir)
-    if [ ${DIR::4} == "Tile" ] ; then
+    if [ "${DIR::4}" = "Tile" ] ; then
         FULL_SUCCES+=( ${DIR:4} )
     fi
 done
