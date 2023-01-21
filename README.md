@@ -27,6 +27,7 @@ First, make sure you are using the kirlia cluster, by running:
 ```
 module swap cluster/kirlia
 ```
+Do this every time you log in to the HPC servers!
 
 Submit job by running:
 ```
