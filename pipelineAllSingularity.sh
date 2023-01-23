@@ -14,7 +14,7 @@ do
   TILE="${FILE##*/}"
   TILE="${TILE%%.*}"
   # run semantic segmentation
-  singularity exec --bind $1:/data/ tls2trees_latest.sif run.py -p /data/extraction/downsample/$TILE.downsample.ply --tile-index /data/extraction/tile_index.dat \
+  singularity exec --bind $1:/data/ tls2trees_latest.sif run.py -p /data/extraction/downsample/$TILE.downsample.ply --tile-index /data/extraction/tile_index.dat --buffer 2 \
   --verbose --odir /data/clouds/singularity/SemanticSeg &> ./logs/output$TILE.log &
 done
 
@@ -30,8 +30,8 @@ do
   TILE="${TILE%%.*}"
   # run semantic segmentation
   singularity exec --bind $1:/data/ tls2trees_latest.sif points2trees.py -t /data/clouds/singularity/SemanticSeg/$TILE.downsample.segmented.ply \
-  --tindex /data/extraction/tile_index.dat --n-tiles 5 --slice-thickness .5 --find-stems-height 2 --find-stems-thickness .5 \
-  --add-leaves --add-leaves-voxel-length .5 --graph-maximum-cumulative-gap 3 --save-diameter-class \
+  --tindex /data/extraction/tile_index.dat --n-tiles 5 --slice-thickness .2 --find-stems-height 1.3 --find-stems-thickness .1 --find-stems-min-radius 0.05 \
+  --add-leaves --add-leaves-voxel-length .5 --graph-maximum-cumulative-gap 3 --save-diameter-class --verbose \
   --ignore-missing-tiles --odir /data/clouds/singularity/Tile$TILE/Trees &>> ./logs/output$TILE.log &
 done
 

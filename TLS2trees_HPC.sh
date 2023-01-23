@@ -129,7 +129,7 @@ do
   SEM_TILES+=( $TILE )
   # run semantic segmentation
   apptainer exec --bind ${IDIR}:/input,${ODIR}:/output ${SIF_LOC} run.py -p /input/extraction/downsample/$TILE.downsample.ply --tile-index /input/extraction/tile_index.dat \
-  --verbose --odir /output/SemanticSeg &> ${LOGSDIR}/output$TILE.log &
+  --verbose --buffer 2 --odir /output/SemanticSeg &> ${LOGSDIR}/output$TILE.log &
 done
 
 echo "All semantic segmentation containers launched"
@@ -156,7 +156,7 @@ do
   INST_TILES+=( $TILE )
   # run semantic segmentation
   apptainer exec --bind ${IDIR}:/input,${ODIR}:/output ${SIF_LOC} points2trees.py -t /output/SemanticSeg/$TILE.downsample.segmented.ply \
-  --tindex /input/extraction/tile_index.dat --n-tiles 5 --slice-thickness .5 --find-stems-height 2 --find-stems-thickness .5 \
+  --tindex /input/extraction/tile_index.dat --n-tiles 5 --slice-thickness .2 --find-stems-height 1.3 --find-stems-thickness .1 --find-stems-min-radius 0.05 \
   --add-leaves --add-leaves-voxel-length .5 --graph-maximum-cumulative-gap 3 --save-diameter-class --verbose \
   --ignore-missing-tiles --odir /output/clouds/Tile$TILE/ &>> ${LOGSDIR}/output$TILE.log &
 done

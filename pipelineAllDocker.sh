@@ -45,7 +45,7 @@ do
   # run instance segmentation for individual trees
   docker run -d --rm -v $1:/data/ --name $CONT_NAME tls2trees:latest points2trees.py -t /data/clouds/SemanticSeg/$TILE.downsample.segmented.ply \
   --tindex /data/extraction/tile_index.dat --n-tiles 5 --slice-thickness .2 --find-stems-height 1.3 --find-stems-thickness .6 --find-stems-min-radius 0.05 \
-  --find-stems-min-points 200 --add-leaves --add-leaves-voxel-length .5 --add-leaves-edge-length 1 --graph-edge-length 2 --graph-maximum-cumulative-gap 3 --save-diameter-class \
+  --find-stems-min-points 200 --add-leaves --add-leaves-voxel-length .5 --add-leaves-edge-length 1 --graph-edge-length 2 --graph-maximum-cumulative-gap 3 --save-diameter-class --verbose \
   --ignore-missing-tiles --min-points-per-tree 200 --odir /data/clouds/Tile$TILE/Trees
   CONTAINER_LIST2+="$CONT_NAME "
 done

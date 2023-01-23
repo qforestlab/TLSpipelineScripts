@@ -53,6 +53,8 @@ The scripts may also be ran locally, using either Docker or Singularity. This ma
 
 ### Docker (_[Install](https://docs.docker.com/engine/install/ubuntu/)_)
 
+**_(if you want logs from inside the container, use singularity)_**
+
  1. If docker container not built yet, or changes are made to algorithms, run in TLS2trees directory:
 	`sudo docker build -t tls2trees:latest .`
  2. Run semantic + instance segmentation in containers:
@@ -68,13 +70,12 @@ The scripts may also be ran locally, using either Docker or Singularity. This ma
 
 ### Singularity (_[Install](https://docs.sylabs.io/guides/3.0/user-guide/installation.html)_)
 
-**_Currently only all tiles, use Docker for single tiles + NOT TESTED!_**
-
  1. If singularity container not built yet, or changes are made to algorithms, run in tls2trees directory: 
 	`sudo singularity build tls2trees_latest.sif docker-daemon://tls2trees:latest`
  2. Run semantic + instance segmentation in containers:
-    - Make scripts executable: `chmod +x pipelineAllSingularity.sh`
-    - Execute scripts: `sudo ./pipelineAllSingularity.sh </home/.../XXX.riproject/>`
+    - Make scripts executable: `chmod +x pipelineSingularity.sh` or `chmod +x pipelineAllSingularity.sh`
+    - Execute scripts: `sudo ./pipelineSingularity.sh </home/.../XXX.riproject/> <TileID>` or `sudo ./pipelineAllSingularity.sh </home/.../XXX.riproject/>`
+         - On ssh, add nohup and send output to log file: `sudo nohup ./pipelineSingularity.sh </home/.../XXX.riproject/> &> output.log &`
  3. Output can be found in /home/.../XXX.riproject/clouds/singularity/
  4. If unable to open output files, run `sudo chown -R <user>:<user> </home/.../XXX.riproject>`
 

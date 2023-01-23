@@ -5,18 +5,18 @@ if [ "$#" -ne 3 ]; then
 fi
 #run semantic segmentation
 docker run -d --rm -v $1:/data/ --name=semseg$2 tls2trees:latest run.py -p /data/extraction/downsample/$2.downsample.ply \
---tile-index /data/extraction/tile_index.dat --verbose --buffer 1 --odir /data/clouds/SemanticSeg
+--tile-index /data/extraction/tile_index.dat --verbose --buffer 2 --odir /data/clouds/SemanticSeg
 #wait for semantic segmentation to finish
 echo "semantic segmentation started, name=semseg$2"
 # TODO: TEMP: start up monitoring of docker container to view MEM and CPU usage
 ./logContainerStats.sh semseg$2
-#wait for instance segmentation to finish
+#wait for semantic segmentation to finish
 docker wait semseg$2
 echo "starting instance segmentation"
 #run instance segmentation for individual trees
 docker run -d --rm -v $1:/data/ --name=instseg$2 tls2trees:latest points2trees.py -t /data/clouds/SemanticSeg/$2.downsample.segmented.ply \
---tindex /data/extraction/tile_index.dat --n-tiles 5 --slice-thickness .5 --find-stems-height 2 --find-stems-thickness .5 \
---verbose --add-leaves --add-leaves-voxel-length .5 --graph-maximum-cumulative-gap 3 --save-diameter-class \
+--tindex /data/extraction/tile_index.dat --n-tiles 5 --slice-thickness .2 --find-stems-height 1.3 --find-stems-thickness .1 --find-stems-min-radius 0.05 \
+--verbose --add-leaves --add-leaves-voxel-length .5 --graph-maximum-cumulative-gap 3 --save-diameter-class --verbose \
 --ignore-missing-tiles --odir /data/clouds/Tile$2/Trees
 echo "instance segmentation started, name=instseg$2"
 # TODO: TEMP: start up monitoring of docker container to view MEM and CPU usage
