@@ -7,18 +7,6 @@ if [ -z "$INPUT" ]; then
     exit 1
 fi
 
-##
-## Check args
-## Deprecated because TORQUE scheduler does not accept args
-##
-
-# if [ "$#" -lt 1 ]; then
-#   echo "Usage: $0 <project name>.riproject (optional) run_ID" >&2
-#   echo "Make sure the riproject folder is present either in the VSC_DATA or VSC_SCRATCH directory"
-#   exit 1
-# fi
-
-
 
 ##
 ## Locate data and copy to scratch for more room and faster executing
@@ -198,7 +186,7 @@ done
 
 FULL_SUCCES=() 
 # check directories to see which tiles have been completed
-for dir in ${IDIR}/clouds/*/ ;
+for dir in ${ODIR}/clouds/*/ ;
 do
     DIR=$(basename $dir)
     if [ "${DIR::4}" = "Tile" ] ; then
