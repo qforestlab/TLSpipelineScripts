@@ -31,9 +31,9 @@ Do this every time you log in to the HPC servers!
 
 Submit job by running:
 ```
-qsub -l walltime=<h:m:s>,nodes=<#nodes>:ppn=<#cores/node>,mem=<#Gb> TLS2trees_HPC.sh <proj>.riproject (optional) <ID>
+qsub -l walltime=<h:m:s>,nodes=<#nodes>:ppn=<#cores/node>,mem=<#Gb> -v INPUT=<proj>.riproject TLS2trees_HPC.sh
 ```
-The optional ID may be used to run multiple jobs at once with different parameters, and will be used to define a unique output location.
+The optional ID may be used to run multiple jobs on the same dataset at once with different parameters, and will be used to define a unique output location.
 Add the `-m abe` option to get e-mail notifications of your job beginning (b), ending (e) and aborting (a).
 
 #### Monitoring job
