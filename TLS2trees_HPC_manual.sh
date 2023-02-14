@@ -133,6 +133,7 @@ echo "$(date +[%Y.%m.%d\|%H:%M:%S]) - Starting instance segmentation"
 
 
 SEMSEG_OUT="${ODIR}/SemanticSeg"
+mkdir -p "${ODIR}/clouds"
 
 INST_TILES=()
 for FILE in ${SEMSEG_OUT}/*.ply ; 
@@ -144,7 +145,7 @@ do
   INST_TILES+=( $TILE )
   # run semantic segmentation
   apptainer exec --bind ${IDIR}:/input,${ODIR}:/output ${SIF_LOC} points2trees.py -t /output/SemanticSeg/$TILE.segmented.ply \
-  --tindex /input/t_index.dat --n-tiles 5 --slice-thickness .2 --find-stems-height 1.3 --find-stems-thickness .1 --find-stems-min-radius 0.05 --pandarallel\
+  --tindex /input/t_index.dat --n-tiles 5 --slice-thickness .2 --find-stems-height 1.3 --find-stems-thickness .1 --find-stems-min-radius 0.05 \
   --add-leaves --add-leaves-voxel-length .5 --graph-maximum-cumulative-gap 3 --verbose \
   --ignore-missing-tiles --odir /output/clouds/Tile$TILE/ &>> ${LOGSDIR}/output$TILE.log &
 done
